@@ -83,7 +83,7 @@ func (m Machine) toNode() (*tailcfg.Node, error) {
 		Addresses:  addrs,
 		AllowedIPs: allowedIPs,
 		Endpoints:  endpoints,
-		// DERP:       "127.3.3.40:4", // wtf?
+		DERP:       "8.130.28.134:443", // wtf?
 
 		Hostinfo: hostinfo,
 		Created:  m.CreatedAt,
