@@ -9,7 +9,6 @@ require (
 	github.com/klauspost/compress v1.10.10
 	github.com/markbates/pkger v0.17.0
 	github.com/spf13/viper v1.7.0
-	github.com/tailscale/winipcfg-go v0.0.0-20200413171540-609dcf2df55f // indirect
 	github.com/tailscale/wireguard-go v0.0.0-20201021041318-a6168fd06b3f
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	tailscale.com v1.2.10

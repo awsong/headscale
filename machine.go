@@ -11,6 +11,7 @@ import (
 	"tailscale.com/tailcfg"
 )
 
+// Machine struct represent a local machine identified by MachineKey
 type Machine struct {
 	ID         uint64 `gorm:"primary_key"`
 	MachineKey string `gorm:"type:varchar(64);unique_index"`

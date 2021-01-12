@@ -7,6 +7,7 @@ import (
 	"tailscale.com/tailcfg"
 )
 
+// These three functions are copied from Tailscale's derpmap.go file
 func derpRegion(id int, code, name string, nodes ...*tailcfg.DERPNode) *tailcfg.DERPRegion {
 	region := &tailcfg.DERPRegion{
 		RegionID:   id,
@@ -31,13 +32,7 @@ func derpNode(suffix, v4, v6 string) *tailcfg.DERPNode {
 	}
 }
 
-// Prod returns Tailscale's map of relay servers.
-//
-// This list is only used by cmd/tailscale's netcheck subcommand. In
-// normal operation the Tailscale nodes get this sent to them from the
-// control server.
-//
-// This list is subject to change and should not be relied on.
+// Prod returns a map of relay servers.
 func Prod() *tailcfg.DERPMap {
 	return &tailcfg.DERPMap{
 		Regions: map[int]*tailcfg.DERPRegion{

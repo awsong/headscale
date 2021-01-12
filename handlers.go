@@ -18,10 +18,12 @@ import (
 	"tailscale.com/tailcfg"
 )
 
+// KeyHandler handles api call /key
 func (h *Headscale) KeyHandler(c *gin.Context) {
 	c.Data(200, "text/plain; charset=utf-8", []byte(h.publicKey.HexString()))
 }
 
+// RegistrationHandler handles machine registration api call /machine/:id
 func (h *Headscale) RegistrationHandler(c *gin.Context) {
 	body, _ := ioutil.ReadAll(c.Request.Body)
 	mKeyStr := c.Param("id")
@@ -102,6 +104,7 @@ func (h *Headscale) RegistrationHandler(c *gin.Context) {
 	log.Println("We dont know anything about the new key. WTF")
 }
 
+// PollNetMapHandler handles api call /machine/:id/map
 func (h *Headscale) PollNetMapHandler(c *gin.Context) {
 	body, _ := ioutil.ReadAll(c.Request.Body)
 	mKeyStr := c.Param("id")
@@ -172,11 +175,10 @@ func (h *Headscale) PollNetMapHandler(c *gin.Context) {
 			log.Printf("🦀 Sending data to %s: %d bytes", c.Request.RemoteAddr, len(msg))
 			w.Write(msg)
 			return true
-		} else {
-			log.Printf("🦄 Closing connection to %s", c.Request.RemoteAddr)
-			c.AbortWithStatus(200)
-			return false
 		}
+		log.Printf("🦄 Closing connection to %s", c.Request.RemoteAddr)
+		c.AbortWithStatus(200)
+		return false
 	})
 
 }

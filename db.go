@@ -4,11 +4,14 @@ import (
 	"errors"
 
 	"github.com/jinzhu/gorm"
+	// this handles postgreSQL
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
 const dbVersion = "1"
 
+// KV struct is a key:value store
+// Every DB row is a key value pair
 type KV struct {
 	Key   string
 	Value string

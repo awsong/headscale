@@ -115,7 +115,6 @@ func getRandomIP() (*net.IP, error) {
 		}
 		fmt.Println("FINAL IP: ", ip.String())
 		return &ip, nil
-	} else {
-		return nil, err
 	}
+	return nil, err
 }

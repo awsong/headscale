@@ -11,6 +11,7 @@ import (
 	"github.com/tailscale/wireguard-go/wgcfg"
 )
 
+// Config is the configuration structure
 type Config struct {
 	ServerURL      string
 	Addr           string
@@ -23,6 +24,7 @@ type Config struct {
 	DBpass string
 }
 
+// Headscale is the main type holds server data
 type Headscale struct {
 	cfg        Config
 	dbString   string
@@ -30,6 +32,7 @@ type Headscale struct {
 	privateKey *wgcfg.PrivateKey
 }
 
+// NewHeadscale create a new instance of headscale server
 func NewHeadscale(cfg Config) (*Headscale, error) {
 	content, err := ioutil.ReadFile(cfg.PrivateKeyPath)
 	if err != nil {
@@ -54,6 +57,7 @@ func NewHeadscale(cfg Config) (*Headscale, error) {
 	return &h, nil
 }
 
+// Serve is the main entry of GIN
 func (h *Headscale) Serve() error {
 	r := gin.Default()
 	r.GET("/key", h.KeyHandler)
