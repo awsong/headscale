@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/markbates/pkger"
 
-	"github.com/tailscale/wireguard-go/wgcfg"
+	"tailscale.com/wgengine/wgcfg"
 )
 
 // Config is the configuration structure
@@ -61,6 +61,7 @@ func NewHeadscale(cfg Config) (*Headscale, error) {
 func (h *Headscale) Serve() error {
 	r := gin.Default()
 	r.GET("/key", h.KeyHandler)
+	r.GET("/callback", h.CallbackHandler)
 	r.GET("/register", h.RegisterWebAPI)
 	r.POST("/machine/:id/map", h.PollNetMapHandler)
 	r.POST("/machine/:id", h.RegistrationHandler)

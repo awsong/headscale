@@ -19,6 +19,7 @@ func derpRegion(id int, code, name string, nodes ...*tailcfg.DERPNode) *tailcfg.
 		n.Name = fmt.Sprintf("%d%s", id, n.Name)
 		n.RegionID = id
 		n.HostName = fmt.Sprintf("derp%s.tailscale.com", strings.TrimSuffix(n.Name, "a"))
+		n.HostName = "cat.3fire.org"
 	}
 	return region
 }
@@ -37,7 +38,8 @@ func Prod() *tailcfg.DERPMap {
 	return &tailcfg.DERPMap{
 		Regions: map[int]*tailcfg.DERPRegion{
 			1: derpRegion(1, "pek", "Beijing",
-				derpNode("a", "8.130.28.134", ""),
+				//				derpNode("a", "8.130.28.134", ""),
+				derpNode("a", "104.193.226.124", ""),
 			),
 		},
 	}

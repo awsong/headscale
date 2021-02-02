@@ -1,14 +1,37 @@
 package headscale
 
+/*
+The IPN network contains 3 concepts: Machine, Node and User.
+One Machine maps to one physical device
+One Node maps to one logical WireGuard interface
+One User maps to one user account in the system, it can have multiple Logins
+such as DingTalk, WeChat, uid/password
+
+Both User and Node data structure are defined in tailcfg module
+
+A Machine can contain multiple Nodes. Each Node belongs to one and only one User.
+Each User can have one or more Nodes reside on different Machine.
+
+Login(Register) process: endpoint:Machine Key, Bind Machine and Node，Authorize
+Node/Machine if needed. If found binding doesn't match or Authinfo expires, then
+ask User to Authenticate.
+Logout process: Unbind Machine and Node. Client delete state file, next time a
+new Node Key will be generated and need to bind to Machine again through Login.
+Map Process: endpoint: Machine Key, Index Key: NodeKey. Get back list of peers.
+This process is the most relavent part to IAM.
+*/
+
 import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/tailscale/wireguard-go/wgcfg"
+	"inet.af/netaddr"
 	"tailscale.com/tailcfg"
+	"tailscale.com/wgengine/wgcfg"
 )
 
 // Machine struct represent a local machine identified by MachineKey
@@ -16,6 +39,7 @@ type Machine struct {
 	ID         uint64 `gorm:"primary_key"`
 	MachineKey string `gorm:"type:varchar(64);unique_index"`
 	NodeKey    string
+	DiscoKey   string
 	IPAddress  string
 
 	Registered bool // temp
@@ -44,10 +68,14 @@ func (m Machine) toNode() (*tailcfg.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	addrs := []wgcfg.CIDR{}
-	allowedIPs := []wgcfg.CIDR{}
+	dKey, err := wgcfg.ParseHexKey(m.DiscoKey)
+	if err != nil {
+		return nil, err
+	}
+	addrs := []netaddr.IPPrefix{}
+	allowedIPs := []netaddr.IPPrefix{}
 
-	ip, err := wgcfg.ParseCIDR(fmt.Sprintf("%s/32", m.IPAddress))
+	ip, err := netaddr.ParseIPPrefix(fmt.Sprintf("%s/32", m.IPAddress))
 	if err != nil {
 		return nil, err
 	}
@@ -81,10 +109,11 @@ func (m Machine) toNode() (*tailcfg.Node, error) {
 		Key:        tailcfg.NodeKey(nKey),
 		KeyExpiry:  *m.Expiry,
 		Machine:    tailcfg.MachineKey(mKey),
+		DiscoKey:   tailcfg.DiscoKey(dKey),
 		Addresses:  addrs,
 		AllowedIPs: allowedIPs,
 		Endpoints:  endpoints,
-		DERP:       "8.130.28.134:443", // wtf?
+		DERP:       "127.3.3.40:1", // wtf?
 
 		Hostinfo: hostinfo,
 		Created:  m.CreatedAt,
@@ -107,7 +136,7 @@ func (h *Headscale) getPeers(m Machine) (*[]*tailcfg.Node, error) {
 
 	// Add user management here?
 	machines := []Machine{}
-	if err = db.Where("machine_key <> ?", m.MachineKey).Find(&machines).Error; err != nil {
+	if err = db.Where("machine_key <> ? AND registered", m.MachineKey).Find(&machines).Error; err != nil {
 		log.Printf("Error accessing db: %s", err)
 		return nil, err
 	}
@@ -122,5 +151,6 @@ func (h *Headscale) getPeers(m Machine) (*[]*tailcfg.Node, error) {
 		}
 		peers = append(peers, peer)
 	}
+	sort.Slice(peers, func(i, j int) bool { return peers[i].ID < peers[j].ID })
 	return &peers, nil
 }

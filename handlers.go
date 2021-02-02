@@ -14,11 +14,12 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/klauspost/compress/zstd"
-	"github.com/tailscale/wireguard-go/wgcfg"
+	"inet.af/netaddr"
 	"tailscale.com/tailcfg"
+	"tailscale.com/wgengine/wgcfg"
 )
 
-// KeyHandler handles api call /key
+// KeyHandler handles api call /key to return server public key (a wg key)
 func (h *Headscale) KeyHandler(c *gin.Context) {
 	c.Data(200, "text/plain; charset=utf-8", []byte(h.publicKey.HexString()))
 }
@@ -50,6 +51,9 @@ func (h *Headscale) RegistrationHandler(c *gin.Context) {
 	var m Machine
 	resp := tailcfg.RegisterResponse{}
 
+	//TODO: if a new tailscaled starts and without follow the webregister API, then it'll hang.
+	// NodeKey in DB will not match NodeKey in req
+	// Need to fix the DB logic, store the machine key (id) only after successfully registered
 	if db.First(&m, "machine_key = ?", mKey.HexString()).RecordNotFound() {
 		log.Println("New Machine!")
 		h.handleNewServer(c, db, mKey, req)
@@ -57,6 +61,7 @@ func (h *Headscale) RegistrationHandler(c *gin.Context) {
 	}
 
 	// We do have the updated key!
+	log.Println(m.NodeKey, req.NodeKey)
 	if m.NodeKey == wgcfg.Key(req.NodeKey).HexString() {
 		if m.Registered {
 			log.Println("Registered and we have the updated key! Lets move to map")
@@ -128,6 +133,7 @@ func (h *Headscale) PollNetMapHandler(c *gin.Context) {
 		c.String(http.StatusInternalServerError, ":(")
 		return
 	}
+	defer db.Close()
 	var m Machine
 	if db.First(&m, "machine_key = ?", mKey.HexString()).RecordNotFound() {
 		log.Printf("Cannot encode message: %s", err)
@@ -139,10 +145,10 @@ func (h *Headscale) PollNetMapHandler(c *gin.Context) {
 	hostinfo, _ := json.Marshal(req.Hostinfo)
 	m.Endpoints = postgres.Jsonb{RawMessage: json.RawMessage(endpoints)}
 	m.HostInfo = postgres.Jsonb{RawMessage: json.RawMessage(hostinfo)}
+	m.DiscoKey = wgcfg.Key(req.DiscoKey).HexString()
 	now := time.Now().UTC()
 	m.LastSeen = &now
 	db.Save(&m)
-	db.Close()
 
 	chanStream := make(chan []byte, 1)
 	go func() {
@@ -198,7 +204,7 @@ func (h *Headscale) getMapResponse(mKey wgcfg.Key, req tailcfg.MapRequest, m Mac
 		KeepAlive:    false,
 		Node:         node,
 		Peers:        *peers,
-		DNS:          []wgcfg.IP{},
+		DNS:          []netaddr.IP{},
 		SearchPaths:  []string{},
 		Domain:       "foobar@example.com",
 		PacketFilter: tailcfg.FilterAllowAll,
@@ -255,6 +261,47 @@ func (h *Headscale) getMapKeepAliveResponse(mKey wgcfg.Key, req tailcfg.MapReque
 	return &data, nil
 }
 
+// CallbackHandler handles api call /callback to handle Dingtalk callback
+func (h *Headscale) CallbackHandler(c *gin.Context) {
+	mKeyStr := c.Query("state")
+	if mKeyStr == "" {
+		c.String(http.StatusBadRequest, "Wrong params")
+		return
+	}
+	mKey, err := wgcfg.ParseHexKey(mKeyStr)
+	if err != nil {
+		log.Printf("Cannot parse client key: %s", err)
+		c.String(http.StatusInternalServerError, "Sad!")
+		return
+	}
+	db, err := h.db()
+	if err != nil {
+		log.Printf("Cannot open DB: %s", err)
+		c.String(http.StatusInternalServerError, ":(")
+		return
+	}
+	defer db.Close()
+	m := Machine{}
+	if db.First(&m, "machine_key = ?", mKey.HexString()).RecordNotFound() {
+		log.Printf("Cannot find machine with machine key: %s", mKey.Base64())
+		c.String(http.StatusNotFound, "Sad!")
+		return
+	}
+
+	ip, err := h.getAvailableIP()
+	if err != nil {
+		log.Println(err)
+		c.String(http.StatusInternalServerError, "Upsy dupsy")
+		return
+	}
+	m.IPAddress = ip.String()
+	m.Registered = true
+	db.Save(&m)
+
+	c.Data(200, "text/plain; charset=utf-8", []byte("您已登录:"+m.IPAddress))
+	return
+}
+
 // RegisterWebAPI attaches the machine to a user or team.
 // Currently this is a rather temp implementation, as it just registers it.
 func (h *Headscale) RegisterWebAPI(c *gin.Context) {
@@ -296,6 +343,15 @@ func (h *Headscale) RegisterWebAPI(c *gin.Context) {
 
 		c.JSON(http.StatusOK, gin.H{"msg": "Ook"})
 		return
+		/*
+			c.Redirect(http.StatusTemporaryRedirect,
+				"https://oapi.dingtalk.com/connect/qrconnect?"+
+					"appid=dingoaw0t8wxhjgcbom5r7&"+
+					"response_type=code&"+
+					"scope=snsapi_login&"+
+					"state="+mKeyStr+"&"+
+					"redirect_uri=http://auth.3fire.org:8000/callback")
+			return*/
 	}
 	c.JSON(http.StatusOK, gin.H{"msg": "Eek"})
 }
