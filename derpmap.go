@@ -38,8 +38,7 @@ func Prod() *tailcfg.DERPMap {
 	return &tailcfg.DERPMap{
 		Regions: map[int]*tailcfg.DERPRegion{
 			1: derpRegion(1, "pek", "Beijing",
-				//				derpNode("a", "8.130.28.134", ""),
-				derpNode("a", "104.193.226.124", ""),
+				derpNode("a", "104.193.226.124", "2602:ffd1:1:13e3::e2c7"),
 			),
 		},
 	}
