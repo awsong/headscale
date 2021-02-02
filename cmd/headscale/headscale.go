@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/juanfont/headscale"
+	"github.com/awsong/headscale"
 	"github.com/spf13/viper"
 )
 

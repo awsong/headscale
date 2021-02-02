@@ -1,4 +1,4 @@
-module github.com/juanfont/headscale
+module github.com/awsong/headscale
 
 go 1.14
 
@@ -6,7 +6,6 @@ require (
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/gobuffalo/here v0.6.2 // indirect
-	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/jinzhu/gorm v1.9.16
 	github.com/json-iterator/go v1.1.10 // indirect
@@ -15,7 +14,6 @@ require (
 	github.com/lib/pq v1.9.0 // indirect
 	github.com/markbates/pkger v0.17.1
 	github.com/spf13/viper v1.7.0
-	github.com/tailscale/wireguard-go v0.0.0-20210129202040-ddaf8316eff8
 	github.com/ugorji/go v1.2.3 // indirect
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777
